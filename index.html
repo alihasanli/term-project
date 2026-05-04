@@ -369,7 +369,7 @@
       </div>
       <div class="api-bar">
         <label for="apiUrl">API</label>
-        <input id="apiUrl" type="text" value="http://127.0.0.1:8000" spellcheck="false" />
+        <input id="apiUrl" type="text" value="https://frame-whimsical-calculus.ngrok-free.dev" spellcheck="false" />
         <div class="dot" id="apiDot" title="API status"></div>
       </div>
     </div>
@@ -496,8 +496,15 @@
 
   // ── API URL ──
   const apiUrlInput = document.getElementById('apiUrl');
+  const NGROK_URL = 'https://frame-whimsical-calculus.ngrok-free.dev';
   const savedUrl = localStorage.getItem('rag_api_url');
-  if (savedUrl) apiUrlInput.value = savedUrl;
+  // Eğer kaydedilmiş URL localhost ise veya hiç yoksa, ngrok URL'ini kullan
+  if (savedUrl && !savedUrl.includes('127.0.0.1') && !savedUrl.includes('localhost')) {
+    apiUrlInput.value = savedUrl;
+  } else {
+    apiUrlInput.value = NGROK_URL;
+    localStorage.setItem('rag_api_url', NGROK_URL);
+  }
   apiUrlInput.addEventListener('change', () => {
     localStorage.setItem('rag_api_url', apiUrlInput.value.trim());
     checkApi();
@@ -511,7 +518,11 @@
   const dot = document.getElementById('apiDot');
   async function checkApi() {
     try {
-      const r = await fetch(getBase() + '/docs', { method: 'GET', signal: AbortSignal.timeout(3000) });
+      const r = await fetch(getBase() + '/docs', {
+        method: 'GET',
+        headers: { 'ngrok-skip-browser-warning': 'true' },
+        signal: AbortSignal.timeout(3000)
+      });
       dot.className = r.ok ? 'dot on' : 'dot off';
     } catch {
       dot.className = 'dot off';
@@ -664,7 +675,10 @@
         try {
           const res = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true'
+            },
             body: JSON.stringify({ type: cfg.type, dataset: activeDataset, query })
           });
           const ms = Date.now() - t0;
