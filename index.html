@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Explorer — Flat RAG vs RAPTOR</title>
+  <meta name="description" content="Compare Flat RAG and RAPTOR responses across Turkuaz and Climate FEVER datasets side by side." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #060c18;
+      --surface: #0c1424;
+      --glass: rgba(255,255,255,0.04);
+      --glass-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --text: #dde4f5;
+      --muted: #5a6480;
+      --dim: #8892b0;
+      --turkuaz: #00d4b8;
+      --turkuaz-bg: rgba(0,212,184,0.10);
+      --turkuaz-border: rgba(0,212,184,0.25);
+      --climate: #f59e0b;
+      --climate-bg: rgba(245,158,11,0.10);
+      --climate-border: rgba(245,158,11,0.25);
+      --raptor: #a78bfa;
+      --raptor-bg: rgba(167,139,250,0.10);
+      --raptor-border: rgba(167,139,250,0.25);
+      --flat: #60a5fa;
+      --flat-bg: rgba(96,165,250,0.10);
+      --flat-border: rgba(96,165,250,0.25);
+      --green: #34d399;
+      --red: #f87171;
+      --yellow: #fbbf24;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 15% 15%, rgba(0,212,184,0.06), transparent),
+        radial-gradient(ellipse 50% 40% at 85% 85%, rgba(167,139,250,0.06), transparent),
+        radial-gradient(ellipse 40% 30% at 80% 10%, rgba(245,158,11,0.04), transparent);
+    }
+
+    .wrap { max-width: 1380px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 1; }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(6,12,24,0.88); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 14px 0; flex-wrap: wrap;
+    }
+
+    .logo { display: flex; align-items: center; gap: 12px; }
+
+    .logo-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--turkuaz), var(--raptor));
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+
+    .logo h1 {
+      font-size: 1.1rem; font-weight: 700;
+      background: linear-gradient(120deg, var(--turkuaz), var(--raptor));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    .logo p { font-size: 0.72rem; color: var(--dim); margin-top: 2px; }
+
+    .api-bar {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--glass); border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 14px;
+    }
+
+    .api-bar label { font-size: 0.72rem; color: var(--muted); font-weight: 500; white-space: nowrap; }
+
+    #apiUrl {
+      background: transparent; border: none; outline: none;
+      color: var(--text); font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem; width: 210px;
+    }
+
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted); transition: background 0.3s, box-shadow 0.3s;
+    }
+    .dot.on  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dot.off { background: var(--red); }
+
+    /* ── QUERY ── */
+    .query-section { padding: 32px 0 24px; }
+
+    .warn {
+      display: none; margin-bottom: 14px;
+      background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25);
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 0.8rem; color: var(--yellow); line-height: 1.5;
+      gap: 10px; align-items: flex-start;
+    }
+    .warn.show { display: flex; }
+
+    .query-box {
+      background: var(--glass); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px;
+    }
+
+    .query-top {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .qlabel { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .hint   { font-size: 0.68rem; color: var(--muted); background: var(--glass); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; }
+
+    /* ── DATASET SELECTOR ── */
+    .ds-selector {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+    }
+    .ds-selector-label {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); white-space: nowrap;
+    }
+    .ds-pills {
+      display: flex; background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px;
+    }
+    .ds-pill {
+      border: none; cursor: pointer; border-radius: 7px;
+      font-family: 'Inter', sans-serif; font-size: 0.78rem; font-weight: 600;
+      padding: 6px 16px; color: var(--dim);
+      background: transparent; transition: background .2s, color .2s, box-shadow .2s;
+      white-space: nowrap;
+    }
+    .ds-pill:hover:not(.active) { background: rgba(255,255,255,0.06); color: var(--text); }
+    .ds-pill.active.pill-t {
+      background: var(--turkuaz-bg); color: var(--turkuaz);
+      border: 1px solid var(--turkuaz-border);
+      box-shadow: 0 0 10px rgba(0,212,184,0.15);
+    }
+    .ds-pill.active.pill-c {
+      background: var(--climate-bg); color: var(--climate);
+      border: 1px solid var(--climate-border);
+      box-shadow: 0 0 10px rgba(245,158,11,0.15);
+    }
+    .ds-pill:not(.active) { border: 1px solid transparent; }
+
+    /* skipped card */
+    .card.skipped { opacity: 0.38; }
+
+    .query-row { display: flex; gap: 12px; align-items: flex-end; }
+
+    textarea#queryInput {
+      flex: 1; resize: vertical; min-height: 76px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-family: 'Inter', sans-serif; font-size: 0.92rem; line-height: 1.6;
+      padding: 12px 16px; outline: none; transition: border-color .2s;
+    }
+    textarea#queryInput:focus { border-color: var(--turkuaz); }
+    textarea#queryInput::placeholder { color: var(--muted); }
+
+    #searchBtn {
+      background: linear-gradient(135deg, var(--turkuaz), #009f8e);
+      border: none; border-radius: 10px; cursor: pointer;
+      color: #000; font-family: 'Inter', sans-serif; font-size: 0.88rem; font-weight: 700;
+      padding: 14px 22px; min-width: 118px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: transform .2s, box-shadow .2s;
+    }
+    #searchBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,212,184,0.3); }
+    #searchBtn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .spin {
+      width: 15px; height: 15px; border: 2px solid rgba(0,0,0,.3); border-top-color: #000;
+      border-radius: 50%; animation: spin .7s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESULTS ── */
+    .results { padding-bottom: 48px; }
+
+    .section-title {
+      font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--muted);
+      display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .dataset-group { margin-bottom: 28px; }
+
+    .ds-head {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+    }
+    .ds-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+    }
+    .ds-dot.t { background: var(--turkuaz); box-shadow: 0 0 7px var(--turkuaz); }
+    .ds-dot.c { background: var(--climate); box-shadow: 0 0 7px var(--climate); }
+    .ds-head h3 { font-size: 0.88rem; font-weight: 600; color: var(--dim); }
+
+    .cards-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    }
+
+    @media (max-width: 720px) {
+      .cards-row { grid-template-columns: 1fr; }
+      #apiUrl { width: 140px; }
+      .query-row { flex-direction: column; align-items: stretch; }
+      #searchBtn { width: 100%; }
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--glass); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+      transition: border-color .3s, box-shadow .3s;
+    }
+
+    .card-head {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .badges { display: flex; gap: 7px; }
+
+    .badge {
+      font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .05em; padding: 3px 9px; border-radius: 6px;
+    }
+
+    .badge-t { background: var(--turkuaz-bg); border: 1px solid var(--turkuaz-border); color: var(--turkuaz); }
+    .badge-c { background: var(--climate-bg); border: 1px solid var(--climate-border); color: var(--climate); }
+    .badge-f { background: var(--flat-bg);    border: 1px solid var(--flat-border);    color: var(--flat); }
+    .badge-r { background: var(--raptor-bg);  border: 1px solid var(--raptor-border);  color: var(--raptor); }
+
+    .timer { font-size: 0.68rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    .card-body { padding: 16px; }
+
+    /* empty */
+    .empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 36px 20px; gap: 8px; text-align: center;
+    }
+    .empty-icon { font-size: 1.8rem; opacity: .25; }
+    .empty-text { font-size: 0.78rem; color: var(--muted); }
+
+    /* skeleton */
+    .skel {
+      border-radius: 6px; margin-bottom: 8px;
+      background: linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.04) 75%);
+      background-size: 200% 100%;
+      animation: shim 1.4s infinite;
+    }
+    @keyframes shim { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .skel-line { height: 12px; }
+
+    /* response */
+    .resp-label {
+      font-size: 0.67rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted);
+      display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+    }
+    .resp-label::before { content: ''; width: 3px; height: 11px; background: currentColor; border-radius: 2px; opacity: .6; }
+
+    .resp-text {
+      font-size: 0.88rem; line-height: 1.7; color: var(--text);
+      white-space: pre-wrap; word-break: break-word;
+    }
+
+    .error-text { font-size: 0.82rem; color: var(--red); }
+
+    /* chunks */
+    .chunks-toggle {
+      margin-top: 14px; width: 100%; background: var(--glass);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--dim); font-family: 'Inter', sans-serif; font-size: 0.75rem;
+      cursor: pointer; padding: 8px 12px; display: flex; align-items: center;
+      justify-content: space-between; transition: background .2s;
+    }
+    .chunks-toggle:hover { background: var(--glass-hover); }
+
+    .chunks-list {
+      margin-top: 10px; display: flex; flex-direction: column; gap: 10px;
+      max-height: 320px; overflow-y: auto;
+    }
+    .chunks-list::-webkit-scrollbar { width: 4px; }
+    .chunks-list::-webkit-scrollbar-track { background: transparent; }
+    .chunks-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .chunk-item {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px;
+    }
+
+    .sim-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+
+    .sim-bar-bg {
+      flex: 1; height: 4px; background: rgba(255,255,255,.07); border-radius: 2px; overflow: hidden;
+    }
+    .sim-bar-fill { height: 100%; border-radius: 2px; }
+
+    .sim-val { font-size: 0.68rem; font-family: 'JetBrains Mono', monospace; color: var(--muted); white-space: nowrap; }
+
+    .chunk-text {
+      font-size: 0.78rem; color: var(--dim); line-height: 1.55;
+      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    /* loaded card glow */
+    .card.loaded-t { border-color: var(--turkuaz-border); }
+    .card.loaded-c { border-color: var(--climate-border); }
+
+    /* verdict badge */
+    .verdict-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .verdict-badge {
+      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; padding: 5px 13px; border-radius: 8px;
+      border: 1px solid; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .verdict-SUPPORTS     { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.35); color: #34d399; }
+    .verdict-REFUTES      { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.35); color: #f87171; }
+    .verdict-NOT_ENOUGH_INFO { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.35); color: #fbbf24; }
+    .verdict-DISPUTED     { background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.35); color: #a78bfa; }
+
+    /* reasoning box */
+    .reasoning-box {
+      margin-top: 12px;
+      background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.18);
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .reasoning-label {
+      font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--climate); margin-bottom: 6px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .reasoning-text {
+      font-size: 0.83rem; line-height: 1.65; color: var(--dim);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">🔷</div>
+        <div>
+          <h1>RAG Explorer</h1>
+          <p>Flat RAG vs RAPTOR · Turkuaz &amp; Climate FEVER</p>
+        </div>
+      </div>
+      <div class="api-bar">
+        <label for="apiUrl">API</label>
+        <input id="apiUrl" type="text" value="http://127.0.0.1:8000" spellcheck="false" />
+        <div class="dot" id="apiDot" title="API status"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="query-section">
+    <div class="warn" id="warnBanner">
+      <span>⚠️</span>
+      <span>Bu sayfa <strong>HTTPS</strong> üzerinden açılmış. Tarayıcılar HTTP API'ye (localhost) bağlanmayı engelleyebilir. Sayfayı <strong>http://</strong> veya doğrudan <strong>dosya olarak</strong> açmayı deneyin.</span>
+    </div>
+    <div class="query-box">
+      <div class="query-top">
+        <span class="qlabel">Sorgunuzu girin</span>
+        <span class="hint">Ctrl + Enter ile gönder</span>
+      </div>
+      <div class="ds-selector">
+        <span class="ds-selector-label">Dataset</span>
+        <div class="ds-pills" id="dsPills">
+          <button class="ds-pill pill-t active" data-ds="turkuaz" onclick="selectDataset('turkuaz', this)">🔷 Turkuaz</button>
+          <button class="ds-pill pill-c" data-ds="climate" onclick="selectDataset('climate', this)">🌍 Climate</button>
+        </div>
+      </div>
+      <div class="query-row">
+        <textarea id="queryInput" placeholder="Karşılaştırmak istediğiniz soruyu yazın…" rows="3"></textarea>
+        <button id="searchBtn" onclick="runQuery()">
+          <div class="spin" id="spin"></div>
+          <span id="btnText">🔍 Ara</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="results">
+    <div class="section-title">Sonuçlar</div>
+
+    <!-- TURKUAZ -->
+    <div class="dataset-group">
+      <div class="ds-head">
+        <div class="ds-dot t"></div>
+        <h3>Turkuaz Dataset</h3>
+      </div>
+      <div class="cards-row">
+        <div class="card" id="card-t-flat">
+          <div class="card-head">
+            <div class="badges">
+              <span class="badge badge-t">Turkuaz</span>
+              <span class="badge badge-f">Flat RAG</span>
+            </div>
+            <span class="timer" id="timer-t-flat"></span>
+          </div>
+          <div class="card-body" id="body-t-flat">
+            <div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Sorgu bekleniyor…</div></div>
+          </div>
+        </div>
+        <div class="card" id="card-t-raptor">
+          <div class="card-head">
+            <div class="badges">
+              <span class="badge badge-t">Turkuaz</span>
+              <span class="badge badge-r">RAPTOR</span>
+            </div>
+            <span class="timer" id="timer-t-raptor"></span>
+          </div>
+          <div class="card-body" id="body-t-raptor">
+            <div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Sorgu bekleniyor…</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIMATE -->
+    <div class="dataset-group">
+      <div class="ds-head">
+        <div class="ds-dot c"></div>
+        <h3>Climate FEVER Dataset</h3>
+      </div>
+      <div class="cards-row">
+        <div class="card" id="card-c-flat">
+          <div class="card-head">
+            <div class="badges">
+              <span class="badge badge-c">Climate</span>
+              <span class="badge badge-f">Flat RAG</span>
+            </div>
+            <span class="timer" id="timer-c-flat"></span>
+          </div>
+          <div class="card-body" id="body-c-flat">
+            <div class="empty"><div class="empty-icon">🌍</div><div class="empty-text">Sorgu bekleniyor…</div></div>
+          </div>
+        </div>
+        <div class="card" id="card-c-raptor">
+          <div class="card-head">
+            <div class="badges">
+              <span class="badge badge-c">Climate</span>
+              <span class="badge badge-r">RAPTOR</span>
+            </div>
+            <span class="timer" id="timer-c-raptor"></span>
+          </div>
+          <div class="card-body" id="body-c-raptor">
+            <div class="empty"><div class="empty-icon">🌍</div><div class="empty-text">Sorgu bekleniyor…</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // ── HTTPS warning ──
+  if (location.protocol === 'https:') {
+    document.getElementById('warnBanner').classList.add('show');
+  }
+
+  // ── Dataset selector ──
+  let activeDataset = 'turkuaz';
+
+  function selectDataset(ds, btn) {
+    activeDataset = ds;
+    document.querySelectorAll('.ds-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // ── API URL ──
+  const apiUrlInput = document.getElementById('apiUrl');
+  const savedUrl = localStorage.getItem('rag_api_url');
+  if (savedUrl) apiUrlInput.value = savedUrl;
+  apiUrlInput.addEventListener('change', () => {
+    localStorage.setItem('rag_api_url', apiUrlInput.value.trim());
+    checkApi();
+  });
+
+  function getBase() {
+    return apiUrlInput.value.trim().replace(/\/$/, '');
+  }
+
+  // ── API health dot ──
+  const dot = document.getElementById('apiDot');
+  async function checkApi() {
+    try {
+      const r = await fetch(getBase() + '/docs', { method: 'GET', signal: AbortSignal.timeout(3000) });
+      dot.className = r.ok ? 'dot on' : 'dot off';
+    } catch {
+      dot.className = 'dot off';
+    }
+  }
+  checkApi();
+  setInterval(checkApi, 15000);
+
+  // ── Keyboard shortcut ──
+  document.getElementById('queryInput').addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') runQuery();
+  });
+
+  // ── Configs ──
+  const CONFIGS = [
+    { id: 't-flat',   dataset: 'turkuaz', type: 'normal', cls: 't' },
+    { id: 't-raptor', dataset: 'turkuaz', type: 'raptor', cls: 't' },
+    { id: 'c-flat',   dataset: 'climate', type: 'normal', cls: 'c' },
+    { id: 'c-raptor', dataset: 'climate', type: 'raptor', cls: 'c' },
+  ];
+
+  // ── Loading skeletons ──
+  function showSkeleton(bodyId) {
+    const el = document.getElementById(bodyId);
+    el.innerHTML = `
+      <div class="skel skel-line" style="width:95%"></div>
+      <div class="skel skel-line" style="width:88%"></div>
+      <div class="skel skel-line" style="width:76%"></div>
+      <div class="skel skel-line" style="width:90%"></div>
+      <div class="skel skel-line" style="width:60%"></div>
+    `;
+  }
+
+  // ── Verdict emoji helper ──
+  const VERDICT_ICON = {
+    SUPPORTS: '✅', REFUTES: '❌', NOT_ENOUGH_INFO: '⚠️', DISPUTED: '🔀'
+  };
+
+  // ── Render result ──
+  function renderResult(cfg, data, ms) {
+    const card = document.getElementById('card-' + cfg.id);
+    card.className = 'card loaded-' + cfg.cls;
+
+    document.getElementById('timer-' + cfg.id).textContent = (ms / 1000).toFixed(2) + 's';
+
+    const chunks = data.chunks || [];
+    const uid = 'chunks-' + cfg.id;
+
+    const chunkItems = chunks.map((c, i) => {
+      const pct = Math.round((c.similarity || 0) * 100);
+      const color = cfg.cls === 't' ? 'var(--turkuaz)' : 'var(--climate)';
+      return `
+        <div class="chunk-item">
+          <div class="sim-row">
+            <div class="sim-bar-bg">
+              <div class="sim-bar-fill" style="width:${pct}%;background:${color}"></div>
+            </div>
+            <span class="sim-val">${pct}%</span>
+          </div>
+          <div class="chunk-text">${escHtml(c.chunk)}</div>
+        </div>`;
+    }).join('');
+
+    // Climate verdict + reasoning block
+    const isClimate = cfg.cls === 'c';
+    const verdictHtml = isClimate && data.verdict ? `
+      <div class="verdict-row">
+        <span class="verdict-badge verdict-${data.verdict}">
+          ${VERDICT_ICON[data.verdict] || ''} ${data.verdict.replace(/_/g, ' ')}
+        </span>
+      </div>` : '';
+
+    const reasoningHtml = isClimate && data.reasoning ? `
+      <div class="reasoning-box">
+        <div class="reasoning-label">💡 Gerekçe</div>
+        <div class="reasoning-text">${escHtml(data.reasoning)}</div>
+      </div>` : '';
+
+    document.getElementById('body-' + cfg.id).innerHTML = `
+      ${verdictHtml}
+      ${!isClimate ? `<div class="resp-label">Yanıt</div>
+      <div class="resp-text">${escHtml(data.response || '')}</div>` : ''}
+      ${reasoningHtml}
+      ${chunks.length > 0 ? `
+        <button class="chunks-toggle" onclick="toggleChunks('${uid}', this)">
+          <span>📄 ${chunks.length} chunk göster</span><span>▼</span>
+        </button>
+        <div class="chunks-list" id="${uid}" style="display:none">${chunkItems}</div>
+      ` : ''}
+    `;
+  }
+
+  function renderError(cfg, msg, ms) {
+    document.getElementById('timer-' + cfg.id).textContent = ms ? (ms / 1000).toFixed(2) + 's' : '';
+    document.getElementById('body-' + cfg.id).innerHTML = `
+      <div class="error-text">❌ ${escHtml(msg)}</div>`;
+  }
+
+  function toggleChunks(uid, btn) {
+    const el = document.getElementById(uid);
+    const hidden = el.style.display === 'none';
+    el.style.display = hidden ? 'flex' : 'none';
+    btn.querySelector('span:last-child').textContent = hidden ? '▲' : '▼';
+    const cnt = el.querySelectorAll('.chunk-item').length;
+    btn.querySelector('span:first-child').textContent = hidden ? `📄 ${cnt} chunk gizle` : `📄 ${cnt} chunk göster`;
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Main query runner ──
+  async function runQuery() {
+    const query = document.getElementById('queryInput').value.trim();
+    if (!query) { document.getElementById('queryInput').focus(); return; }
+
+    const btn = document.getElementById('searchBtn');
+    const spin = document.getElementById('spin');
+    const btnText = document.getElementById('btnText');
+    btn.disabled = true;
+    spin.style.display = 'block';
+    btnText.style.display = 'none';
+
+    // reset cards — show only selected dataset, dim the other
+    CONFIGS.forEach(cfg => {
+      const active = cfg.dataset === activeDataset;
+      const card = document.getElementById('card-' + cfg.id);
+      card.className = active ? 'card' : 'card skipped';
+      document.getElementById('timer-' + cfg.id).textContent = '';
+      if (active) {
+        showSkeleton('body-' + cfg.id);
+      } else {
+        document.getElementById('body-' + cfg.id).innerHTML =
+          `<div class="empty"><div class="empty-icon">⏭️</div><div class="empty-text">Bu dataset seçilmedi</div></div>`;
+      }
+    });
+
+    const base = getBase();
+    // Endpoint: /turkuaz/query veya /climate/query
+    const endpoint = base + '/' + activeDataset + '/query';
+
+    const promises = CONFIGS
+      .filter(cfg => cfg.dataset === activeDataset)
+      .map(async cfg => {
+        const t0 = Date.now();
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: cfg.type, dataset: activeDataset, query })
+          });
+          const ms = Date.now() - t0;
+          if (!res.ok) {
+            const txt = await res.text();
+            renderError(cfg, `HTTP ${res.status}: ${txt}`, ms);
+          } else {
+            const data = await res.json();
+            renderResult(cfg, data, ms);
+          }
+        } catch (err) {
+          renderError(cfg, err.message, Date.now() - t0);
+        }
+      });
+
+    await Promise.allSettled(promises);
+
+    btn.disabled = false;
+    spin.style.display = 'none';
+    btnText.style.display = 'inline';
+  }
+</script>
+</body>
+</html>
