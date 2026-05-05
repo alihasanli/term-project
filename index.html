@@ -379,10 +379,7 @@
 <main class="wrap">
 
   <section class="query-section">
-    <div class="warn" id="warnBanner">
-      <span>⚠️</span>
-      <span>This page is loaded over <strong>HTTPS</strong>. Browsers may block connections to an HTTP API (localhost). Try opening the page via <strong>http://</strong> or directly as a <strong>file</strong>.</span>
-    </div>
+
     <div class="query-box">
       <div class="query-top">
         <span class="qlabel">Enter your query</span>
@@ -480,10 +477,7 @@
 </main>
 
 <script>
-  // ── HTTPS warning ──
-  if (location.protocol === 'https:') {
-    document.getElementById('warnBanner').classList.add('show');
-  }
+
 
   // ── Dataset selector ──
   let activeDataset = 'turkuaz';
