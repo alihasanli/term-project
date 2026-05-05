@@ -381,12 +381,12 @@
   <section class="query-section">
     <div class="warn" id="warnBanner">
       <span>⚠️</span>
-      <span>Bu sayfa <strong>HTTPS</strong> üzerinden açılmış. Tarayıcılar HTTP API'ye (localhost) bağlanmayı engelleyebilir. Sayfayı <strong>http://</strong> veya doğrudan <strong>dosya olarak</strong> açmayı deneyin.</span>
+      <span>This page is loaded over <strong>HTTPS</strong>. Browsers may block connections to an HTTP API (localhost). Try opening the page via <strong>http://</strong> or directly as a <strong>file</strong>.</span>
     </div>
     <div class="query-box">
       <div class="query-top">
-        <span class="qlabel">Sorgunuzu girin</span>
-        <span class="hint">Ctrl + Enter ile gönder</span>
+        <span class="qlabel">Enter your query</span>
+        <span class="hint">Press Ctrl + Enter to send</span>
       </div>
       <div class="ds-selector">
         <span class="ds-selector-label">Dataset</span>
@@ -396,17 +396,17 @@
         </div>
       </div>
       <div class="query-row">
-        <textarea id="queryInput" placeholder="Karşılaştırmak istediğiniz soruyu yazın…" rows="3"></textarea>
+        <textarea id="queryInput" placeholder="Type the question you want to compare..." rows="3"></textarea>
         <button id="searchBtn" onclick="runQuery()">
           <div class="spin" id="spin"></div>
-          <span id="btnText">🔍 Ara</span>
+          <span id="btnText">🔍 Search</span>
         </button>
       </div>
     </div>
   </section>
 
   <section class="results">
-    <div class="section-title">Sonuçlar</div>
+    <div class="section-title">Results</div>
 
     <!-- TURKUAZ -->
     <div class="dataset-group">
@@ -424,7 +424,7 @@
             <span class="timer" id="timer-t-flat"></span>
           </div>
           <div class="card-body" id="body-t-flat">
-            <div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Sorgu bekleniyor…</div></div>
+            <div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Waiting for query...</div></div>
           </div>
         </div>
         <div class="card" id="card-t-raptor">
@@ -436,7 +436,7 @@
             <span class="timer" id="timer-t-raptor"></span>
           </div>
           <div class="card-body" id="body-t-raptor">
-            <div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Sorgu bekleniyor…</div></div>
+            <div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Waiting for query...</div></div>
           </div>
         </div>
       </div>
@@ -458,7 +458,7 @@
             <span class="timer" id="timer-c-flat"></span>
           </div>
           <div class="card-body" id="body-c-flat">
-            <div class="empty"><div class="empty-icon">🌍</div><div class="empty-text">Sorgu bekleniyor…</div></div>
+            <div class="empty"><div class="empty-icon">🌍</div><div class="empty-text">Waiting for query...</div></div>
           </div>
         </div>
         <div class="card" id="card-c-raptor">
@@ -470,7 +470,7 @@
             <span class="timer" id="timer-c-raptor"></span>
           </div>
           <div class="card-body" id="body-c-raptor">
-            <div class="empty"><div class="empty-icon">🌍</div><div class="empty-text">Sorgu bekleniyor…</div></div>
+            <div class="empty"><div class="empty-icon">🌍</div><div class="empty-text">Waiting for query...</div></div>
           </div>
         </div>
       </div>
@@ -498,7 +498,7 @@
   const apiUrlInput = document.getElementById('apiUrl');
   const NGROK_URL = 'https://frame-whimsical-calculus.ngrok-free.dev';
   const savedUrl = localStorage.getItem('rag_api_url');
-  // Eğer kaydedilmiş URL localhost ise veya hiç yoksa, ngrok URL'ini kullan
+  // If saved URL is localhost or none, use ngrok URL
   if (savedUrl && !savedUrl.includes('127.0.0.1') && !savedUrl.includes('localhost')) {
     apiUrlInput.value = savedUrl;
   } else {
@@ -597,18 +597,18 @@
 
     const reasoningHtml = isClimate && data.reasoning ? `
       <div class="reasoning-box">
-        <div class="reasoning-label">💡 Gerekçe</div>
+        <div class="reasoning-label">💡 Reasoning</div>
         <div class="reasoning-text">${escHtml(data.reasoning)}</div>
       </div>` : '';
 
     document.getElementById('body-' + cfg.id).innerHTML = `
       ${verdictHtml}
-      ${!isClimate ? `<div class="resp-label">Yanıt</div>
+      ${!isClimate ? `<div class="resp-label">Response</div>
       <div class="resp-text">${escHtml(data.response || '')}</div>` : ''}
       ${reasoningHtml}
       ${chunks.length > 0 ? `
         <button class="chunks-toggle" onclick="toggleChunks('${uid}', this)">
-          <span>📄 ${chunks.length} chunk göster</span><span>▼</span>
+          <span>📄 Show ${chunks.length} chunks</span><span>▼</span>
         </button>
         <div class="chunks-list" id="${uid}" style="display:none">${chunkItems}</div>
       ` : ''}
@@ -627,7 +627,7 @@
     el.style.display = hidden ? 'flex' : 'none';
     btn.querySelector('span:last-child').textContent = hidden ? '▲' : '▼';
     const cnt = el.querySelectorAll('.chunk-item').length;
-    btn.querySelector('span:first-child').textContent = hidden ? `📄 ${cnt} chunk gizle` : `📄 ${cnt} chunk göster`;
+    btn.querySelector('span:first-child').textContent = hidden ? `📄 Hide ${cnt} chunks` : `📄 Show ${cnt} chunks`;
   }
 
   function escHtml(str) {
@@ -660,12 +660,12 @@
         showSkeleton('body-' + cfg.id);
       } else {
         document.getElementById('body-' + cfg.id).innerHTML =
-          `<div class="empty"><div class="empty-icon">⏭️</div><div class="empty-text">Bu dataset seçilmedi</div></div>`;
+          `<div class="empty"><div class="empty-icon">⏭️</div><div class="empty-text">This dataset is not selected</div></div>`;
       }
     });
 
     const base = getBase();
-    // Endpoint: /turkuaz/query veya /climate/query
+    // Endpoint: /turkuaz/query or /climate/query
     const endpoint = base + '/' + activeDataset + '/query';
 
     const promises = CONFIGS
